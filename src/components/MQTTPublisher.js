@@ -1,11 +1,7 @@
-// https://github.com/matwerber1/aws-amplify-react-iot-pub-sub-demo
-// https://docs.aws.amazon.com/iot/latest/developerguide/device-shadow-mqtt.html
-
 import { Auth, Amplify, Hub } from "aws-amplify";
-
 import { Button, Flex, Input, Text } from "@aws-amplify/ui-react";
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { toast } from "react-toastify";
 import awsconfig from "../aws-exports";
 import "@aws-amplify/ui-react/styles.css";
 import { PubSub } from "aws-amplify";
@@ -29,7 +25,8 @@ Amplify.addPluggable(
 );
 
 const MQTTPublisher = () => {
-  const [lastShadowState, setLastShadowState] = useState(null);
+  let showConnectionToast = useRef(true);
+  const [lastShadowState, setLastShadowState] = useState();
   const [hasUpdate, setHasUpdate] = useState(true);
   const [connected, setConnected] = useState(false);
 
@@ -99,37 +96,58 @@ const MQTTPublisher = () => {
   }, []);
 
   useEffect(() => {
+    if (connected && showConnectionToast.current) {
+      toast.success("Conexão estabelecida com AWS Iot Core");
+      showConnectionToast.current = false;
+    }
+
     getThingShadow();
   }, [connected, hasUpdate]);
 
   return (
-    <Flex
-      as="form"
-      maxWidth="40rem"
-      gap="1rem"
-      padding="2.5rem"
-      direction="column"
-    >
-      <Text as="strong" fontSize="1.5rem" fontWeight="bold">
-        MQTT Publisher
-      </Text>
-      <Text fontSize="1rem">
-        Publica Mensagens no tópico equivalente ao <b>Device Shadow</b>.
-      </Text>
-      <Input
-        id="msg"
-        name="msg"
-        type="text"
-        placeholder="Digite uma mensagem"
-        isRequired
-      />
-      <Button variation="primary" onClick={updateThingShadow}>
-        Publicar
-      </Button>
-      <Button onClick={getThingShadow}>Obter Estado da Sombra</Button>
-      <Button onClick={signOut}>Sair</Button>
-      <Text>Último estado da Sombra: {JSON.stringify(lastShadowState)}</Text>
-    </Flex>
+    <>
+      <Flex
+        as="form"
+        maxWidth="40rem"
+        gap="1rem"
+        padding="2.5rem"
+        direction="column"
+      >
+        <Text as="strong" fontSize="1.5rem" fontWeight="bold">
+          AWS Amplify MQTT Publisher
+        </Text>
+        <Text fontSize="1rem">
+          Publica Mensagens no tópico equivalente ao <b>Device Shadow</b>.
+        </Text>
+        <Input
+          id="msg"
+          name="msg"
+          type="text"
+          placeholder="Digite uma mensagem"
+          isRequired
+        />
+        <Button variation="primary" onClick={updateThingShadow}>
+          Publicar
+        </Button>
+        <Button onClick={getThingShadow}>Obter estado atual da sombra</Button>
+        <Button onClick={signOut}>Sair</Button>
+        <Text
+          backgroundColor="#047D95"
+          color="white"
+          padding="1rem"
+          borderRadius="0.25rem"
+          fontSize="0.8rem"
+          opacity={0.5}
+        >
+          <i>
+            {`Para testar, entre no painel AWS > IoT Core > All Devices > Things >
+          Nome da Coisa > Device Shadows > Nome da Sombra > MQTT Topics > MQTT Test
+          Client`}
+          </i>
+        </Text>
+        <Text>Último estado da Sombra: {JSON.stringify(lastShadowState)}</Text>
+      </Flex>
+    </>
   );
 };
 
