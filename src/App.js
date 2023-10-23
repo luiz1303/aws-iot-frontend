@@ -1,9 +1,5 @@
 // https://github.com/matwerber1/aws-amplify-react-iot-pub-sub-demo
-
-// https://github.com/aws-samples/aws-amplify-react-iot-pub-sub-using-lambda
-
-// ver forma de publicar na sombra do objeto
-// https://us-east-1.console.aws.amazon.com/iot/home?region=us-east-1#/test
+// https://docs.aws.amazon.com/iot/latest/developerguide/device-shadow-mqtt.html
 
 import { Amplify, Hub } from "aws-amplify";
 
@@ -18,8 +14,9 @@ import { PubSub } from "aws-amplify";
 import { AWSIoTProvider, CONNECTION_STATE_CHANGE } from "@aws-amplify/pubsub";
 Amplify.configure(awsconfig);
 
-const SUB_TOPIC = "esp32/sub";
-const PUB_TOPIC = "esp32/pub";
+const SHADOW_TOPIC_UPDATE = "$aws/things/ESP32/shadow/update";
+const SHADOW_TOPIC_SUBSCRIBE = "$aws/things/ESP32/shadow/update/accepted";
+const SHADOW_TOPIC_GET = "$aws/things/ESP32/shadow/get/accepted";
 
 Amplify.addPluggable(
   new AWSIoTProvider({
@@ -29,45 +26,37 @@ Amplify.addPluggable(
   })
 );
 
-async function ProcessMessage(payload) {
-  console.log("Message received", payload);
-  let topic = payload.value[Object.getOwnPropertySymbols(payload.value)[0]];
-  let time = payload.value.time;
-  let sensor_a0 = payload.value.sensor_a0;
-  let scrollBox = document.getElementById("incomingMsg");
-  scrollBox.innerHTML +=
-    "<b>NEW MESSAGE: </b><br></br> Topic: " +
-    topic +
-    "<br></br> Time: " +
-    time +
-    "<br></br> Sensor_a0: " +
-    sensor_a0 +
-    "<br></br>";
-  scrollBox.scrollTop = scrollBox.scrollHeight;
-}
+const updateThingShadow = async () => {
+  const shadowState = {
+    state: {
+      desired: {
+        key: "valorTeste",
+      },
+    },
+  };
 
-const SendMessage = async () => {
-  let payload = document.getElementById("msg").value;
-  document.getElementById("msg").value = "";
-  console.log(payload);
-
-  await PubSub.publish(PUB_TOPIC, { msg: payload });
-  let sentMsgBox = document.getElementById("sentMsg");
-  sentMsgBox.innerHTML += payload + "<br></br>";
-  sentMsgBox.scrollTop = sentMsgBox.scrollHeight;
+  await PubSub.publish(SHADOW_TOPIC_UPDATE, shadowState);
 };
 
-const subscribe = () => {
-  PubSub.subscribe(SUB_TOPIC).subscribe({
-    next: (data) => ProcessMessage(data),
+const subscribeToThingShadowUpdates = () => {
+  PubSub.subscribe(SHADOW_TOPIC_SUBSCRIBE).subscribe({
+    next: (data) => console.log("Shadow update:", data.value),
     error: (error) => console.error(error),
     close: () => console.log("Done"),
   });
 };
 
+const getThingShadow = () => {
+  PubSub.subscribe(SHADOW_TOPIC_GET).subscribe({
+    next: (data) => console.log("Current Shadow State:", data.value),
+    error: (error) => console.log(error),
+    close: () => console.log("Done"),
+  });
+};
+
+// Espera por alterações no estado da Conexão
 Hub.listen("pubsub", (data) => {
   const { payload } = data;
-  console.log(data);
   if (payload.event === CONNECTION_STATE_CHANGE) {
     const connectionState = payload.data.connectionState;
     console.log(connectionState);
@@ -75,13 +64,13 @@ Hub.listen("pubsub", (data) => {
 });
 
 function App() {
-  subscribe();
+  subscribeToThingShadowUpdates();
   return (
     <PageLayout>
       <PublisherWrapper>
         <h2>MQTT Publisher</h2>
         <p>
-          Envia mensagens para o tópico <b>{PUB_TOPIC}</b>.
+          Publica Mensagens no tópico equivalente ao <b>Device Shadow</b>.
         </p>
         <input
           type="text"
@@ -89,10 +78,9 @@ function App() {
           name="msg"
           placeholder="Digite uma mensagem"
         ></input>
-        <Button onClick={SendMessage}>Enviar</Button>
-        <h3>Mensagens enviadas:</h3>
-        <div id="sentMsg" />
+        <Button onClick={updateThingShadow}>Atualizar Sombra</Button>
       </PublisherWrapper>
+      <Button onClick={getThingShadow}>Obter Estado da Sombra</Button>
     </PageLayout>
   );
 }
