@@ -7,7 +7,7 @@ import { PageLayout } from "./styles/customStyles";
 import React from "react";
 import awsconfig from "./aws-exports";
 import "@aws-amplify/ui-react/styles.css";
-import MQTTPublisher from "./components/MQTTPublisher";
+import { MQTTPublisher } from "./components";
 
 Amplify.configure(awsconfig);
 

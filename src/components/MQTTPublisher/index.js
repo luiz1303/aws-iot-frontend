@@ -2,7 +2,7 @@ import { Auth, Amplify, Hub } from "aws-amplify";
 import { Button, Flex, Input, Text } from "@aws-amplify/ui-react";
 import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
-import awsconfig from "../aws-exports";
+import awsconfig from "../../aws-exports";
 import "@aws-amplify/ui-react/styles.css";
 import { PubSub } from "aws-amplify";
 import {
