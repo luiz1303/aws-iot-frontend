@@ -34,6 +34,7 @@ const Home = () => {
   let currentVersion = 0;
   let showConnectionToast = useRef(true);
   const [lastShadowState, setLastShadowState] = useState();
+  const [loadingAWSConnection, setLoadingAWSConnection] = useState(true);
   const [userInfo, setUserInfo] = useState();
   const [connected, setConnected] = useState(false);
 
@@ -107,6 +108,7 @@ const Home = () => {
     if (connected && showConnectionToast.current) {
       toast.success("Conexão estabelecida com AWS Iot Core");
       showConnectionToast.current = false;
+      setLoadingAWSConnection(false);
     }
 
     getThingShadow();
@@ -144,6 +146,7 @@ const Home = () => {
           <CardDevice
             handleChangeDevice={handleUpdateState}
             deviceName="Lâmpada"
+            loading={loadingAWSConnection}
             active={lastShadowState?.reported?.powerOn}
           />
         </Flex>

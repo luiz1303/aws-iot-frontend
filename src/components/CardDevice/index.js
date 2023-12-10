@@ -6,7 +6,17 @@ import { Text } from "@aws-amplify/ui-react";
 
 import S from "./styles";
 
-const CardDevice = ({ handleChangeDevice, deviceName, active, ...rest }) => {
+const CardDevice = ({
+  handleChangeDevice,
+  deviceName,
+  active,
+  loading,
+  ...rest
+}) => {
+  if (loading) {
+    return <S.CardSkeleton />;
+  }
+
   return (
     <S.CardDevice onClick={handleChangeDevice} active={active}>
       <FontAwesomeIcon icon={faLightbulb} size="2x" color="white" />
