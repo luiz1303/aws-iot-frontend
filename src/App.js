@@ -7,7 +7,6 @@ import { PageLayout, theme } from "./styles/customStyles";
 import React from "react";
 import awsconfig from "./aws-exports";
 import "@aws-amplify/ui-react/styles.css";
-// import { MQTTPublisher } from "./components";
 import { Home } from "./components";
 import { ThemeProvider } from "styled-components";
 
