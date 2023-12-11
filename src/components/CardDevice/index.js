@@ -1,4 +1,5 @@
-import React from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useEffect, useState } from "react";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLightbulb } from "@fortawesome/free-solid-svg-icons";
@@ -13,12 +14,27 @@ const CardDevice = ({
   loading,
   ...rest
 }) => {
+  const [lastState, setLastState] = useState(active);
+
+  useEffect(() => {
+    if (active !== lastState) {
+      setLastState(active);
+    }
+  }, [active]);
+
   if (loading) {
-    return <S.CardSkeleton />;
+    return (
+      <S.CardSkeleton lastState={lastState}>
+        <S.Spinner />
+      </S.CardSkeleton>
+    );
   }
 
   return (
-    <S.CardDevice onClick={handleChangeDevice} active={active}>
+    <S.CardDevice
+      onClick={!loading ? () => handleChangeDevice() : null}
+      active={active}
+    >
       <FontAwesomeIcon icon={faLightbulb} size="2x" color="white" />
       <S.DeviceInfo>
         <S.DeviceName>{deviceName}</S.DeviceName>

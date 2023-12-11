@@ -33,7 +33,8 @@ Amplify.addPluggable(
 const Home = () => {
   let currentVersion = 0;
   let showConnectionToast = useRef(true);
-  const [lastShadowState, setLastShadowState] = useState();
+  const [lastDesiredState, setLastDesiredState] = useState();
+  const [lastReportedState, setLastReportedState] = useState();
   const [loadingAWSConnection, setLoadingAWSConnection] = useState(true);
   const [userInfo, setUserInfo] = useState();
   const [connected, setConnected] = useState(false);
@@ -43,12 +44,37 @@ const Home = () => {
   };
 
   const handleUpdateState = () => {
-    if (!!lastShadowState) {
+    if (!!lastDesiredState && !!lastReportedState) {
       const message = {
-        desired: { powerOn: lastShadowState?.reported?.powerOn ? 0 : 1 },
-        reported: lastShadowState?.reported,
+        desired: { powerOn: lastReportedState?.powerOn ? 0 : 1 },
       };
+
       updateThingShadow(message);
+    }
+  };
+
+  const shadowStateHandler = (data) => {
+    if (data?.value?.version > currentVersion) {
+      currentVersion = data?.value?.version;
+
+      if (data?.value?.state?.desired?.powerOn !== undefined) {
+        setLastDesiredState(data?.value?.state?.desired);
+      }
+
+      if (data?.value?.state?.reported?.powerOn !== undefined) {
+        setLastReportedState(data?.value?.state?.reported);
+      }
+
+      if (
+        loadingAWSConnection &&
+        data?.value?.state?.reported?.powerOn !== lastReportedState?.powerOn
+      ) {
+        setLoadingAWSConnection(false);
+      } else {
+        setTimeout(() => {
+          setLoadingAWSConnection(false);
+        }, 10000);
+      }
     }
   };
 
@@ -56,20 +82,13 @@ const Home = () => {
   const subscribeToThingShadowUpdates = async () => {
     // Retorna ao publicar no tópico get
     PubSub.subscribe(`${SHADOW_TOPIC}/get/accepted`).subscribe({
-      next: async (data) => {
-        if (data?.value?.version > currentVersion) {
-          currentVersion = data?.value?.version;
-          setLastShadowState(data?.value?.state);
-        }
-      },
+      next: (data) => shadowStateHandler(data),
       error: (error) => console.log(error),
     });
 
     // Retorna ao publicar no tópico update
     PubSub.subscribe(`${SHADOW_TOPIC}/update/accepted`).subscribe({
-      next: (data) => {
-        console.log("Shadow update:", data?.value?.state);
-      },
+      next: (data) => shadowStateHandler(data),
       error: (error) => console.log(error),
     });
   };
@@ -91,8 +110,6 @@ const Home = () => {
     const { payload } = data;
     if (payload.event === CONNECTION_STATE_CHANGE) {
       const connectionState = payload.data.connectionState;
-      // console.log(connectionState);
-
       connectionState === ConnectionState.Connected
         ? setConnected(true)
         : setConnected(false);
@@ -144,10 +161,13 @@ const Home = () => {
         <CardWeather />
         <Flex direction="row" gap="1.25rem" marginTop="0.75rem">
           <CardDevice
-            handleChangeDevice={handleUpdateState}
+            handleChangeDevice={() => {
+              setLoadingAWSConnection(true);
+              handleUpdateState();
+            }}
             deviceName="Lâmpada"
             loading={loadingAWSConnection}
-            active={lastShadowState?.reported?.powerOn}
+            active={lastReportedState?.powerOn}
           />
         </Flex>
       </S.HomeLayout>
